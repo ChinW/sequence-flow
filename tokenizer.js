@@ -212,26 +212,26 @@ function Parser() {
 
     this.l2.relationship = (tokens) => {
         const createSubject = (codeID, value, force = false) => {
-            this.subjects[codeID] = value;
+            if ((!force && typeof this.subjects[codeID] !== 'undefined') || force === true) {
+                this.subjects[codeID] = value;
+            }
         };
         let op = this.l3.operator(tokens[1]);
         let leftTokens = [];
         if (op.value === STATUS.COLON) {               
             const sub1 = this.l3.subject(tokens[0]);
             const sub2 = this.l3.subject(tokens[2]);
-            createSubject(sub1, sub2);
+            createSubject(sub1.value, sub2.value);
             this.painter.create.subjects(this.subjects);
             leftTokens = tokens.slice(2);
         } else if(RELATION_OP.indexOf(op.value) > -1) {
             const sub1 = this.l3.subject(tokens[0]);
             const sub2 = this.l3.subject(tokens[2]);
-            this.subjects[sub1] = sub2;
-            this.painter.create.subjects();
+            this.painter.create.flow(this.subjects[sub1.value], this.subjects[sub2.value], op.value);
             leftTokens = tokens.slice(2);
         } else if (op.value === STATUS.EQ) {
             const sub1 = this.l3.subject(tokens[0]);
-
-            this.subjects[sub1] = sub2;
+            createSubject(sub1.value, sub1.value);
             this.painter.create.subjects();
             leftTokens = tokens.slice(1);
         } else {
