@@ -212,41 +212,64 @@ function Parser() {
 
     this.l2.relationship = (tokens) => {
         const createSubject = (codeID, value, force = false) => {
-            if ((!force && typeof this.subjects[codeID] !== 'undefined') || force === true) {
+            if ((!force && typeof this.subjects[codeID] === 'undefined') || force === true) {
                 this.subjects[codeID] = value;
             }
         };
         let op = this.l3.operator(tokens[1]);
         let leftTokens = [];
         if (op.value === STATUS.COLON) {               
+            const sub = this.l3.subject(tokens[0]);
+            const description = this.l3.description(tokens[2]);
+            this.painter.create.group(sub, description);
+            leftTokens = tokens.slice(3);
+        } else if(RELATION_OP.indexOf(op.value) > -1) {
+            const sub1 = this.l3.subject(tokens[0]);
+            const sub2 = this.l3.subject(tokens[2]);
+            createSubject(sub1.value, sub1.value);
+            createSubject(sub2.value, sub2.value);
+            this.painter.create.flow(this.subjects[sub1.value], this.subjects[sub2.value], op.value);
+            leftTokens = tokens.slice(3);
+        } else if (op.value === STATUS.EQ) {
             const sub1 = this.l3.subject(tokens[0]);
             const sub2 = this.l3.subject(tokens[2]);
             createSubject(sub1.value, sub2.value);
             this.painter.create.subjects(this.subjects);
-            leftTokens = tokens.slice(2);
-        } else if(RELATION_OP.indexOf(op.value) > -1) {
-            const sub1 = this.l3.subject(tokens[0]);
-            const sub2 = this.l3.subject(tokens[2]);
-            this.painter.create.flow(this.subjects[sub1.value], this.subjects[sub2.value], op.value);
-            leftTokens = tokens.slice(2);
-        } else if (op.value === STATUS.EQ) {
-            const sub1 = this.l3.subject(tokens[0]);
-            createSubject(sub1.value, sub1.value);
-            this.painter.create.subjects();
-            leftTokens = tokens.slice(1);
+            leftTokens = tokens.slice(3);
         } else {
             throw `Error happened in l2.relationship`;
         }
+        log(leftTokens);
         return leftTokens;
     };
     this.l2.input = (tokens) => {
+        if(tokens[0].value === STATUS.LP) {
+            const tokenValue = tokens.map(token => token.value);
+            const limitIndex = tokenValue.indexOf(STATUS.RP) + 1;
+            // Error Handling
+            const input = tokens.slice(0, limitIndex);
 
+            const leftTokens = tokens.slice(limitIndex);
+            this.painter.create.input(input.filter(token => token.type === TYPE.VAR));
+            return leftTokens;
+        }
     };
     this.l2.output = (tokens) => {
-
+        if(tokens[0].value === STATUS.LB) {
+            const tokenValue = tokens.map(token => token.value);
+            const limitIndex = tokenValue.indexOf(STATUS.RB) + 1;
+            // Error Handling
+            const output = tokens.slice(0, limitIndex);
+            const leftTokens = tokens.slice(limitIndex);
+            this.painter.create.output(output.filter(token => token.type === TYPE.VAR));
+            return leftTokens;
+        }
     };
     this.l2.description = (tokens) => {
-        
+        if (tokens[0].value === STATUS.COLON && tokens[1].type === TYPE.VALUE) {
+            this.painter.create.description(tokens[1]);
+            return tokens.slice(1);
+        }
     };
 
     this.run = () => {
@@ -279,27 +302,29 @@ function Painter() {
     const subjects = document.getElementById('flow-subjects');
     this.create = {
         subjects: (subjects) => {
-            log('create subjects', arguments);
+            log('create subjects', subjects);
             const node = document.createElement("div");
             node.className = "subject";
             node.id = "tmp";
-            
             // subjects.appendChild();
         },
-        flow: () => {
-            log('create flow', arguments);
+        flow: (sub1, sub2) => {
+            log('create flow', sub1, sub2);
         },
-        separator: () => {
-            log('create separator', arguments);
+        description: (description) => {
+            log('create description', description);
         },
-        group: () => {
-            log('create group', arguments);
+        separator: (description) => {
+            log('create separator', description);
         },
-        input: () => {
-            log('create input', arguments);
+        group: (subjectName, description) => {
+            log('create group', subjectName, description);
         },
-        output: () => {
-            log('create output', arguments);
+        input: (input) => {
+            log('create input', input);
+        },
+        output: (output) => {
+            log('create output', output);
         }
     };
     this.createFlow = () => {};
